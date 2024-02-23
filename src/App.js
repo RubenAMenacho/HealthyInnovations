@@ -1,63 +1,25 @@
-import React, { useState } from 'react';
-import './App.css';
-import { FaSearch } from 'react-icons/fa'; // Make sure to install react-icons using npm
+
+//App.js// 
+
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Login from './Login';
+import Signup from './Signup';
+import LandingPage from './LandingPage';
 
 function App() {
-  const [search, setSearch] = useState('');
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const staticSuggestions = [
-    'Alternative to ice cream',
-    'Alternative to rice crispies',
-    'Alternative to chocolate cake',
-    // More static suggestions...
-  ];
-
-  const handleFocus = () => {
-    setShowSuggestions(true);
-  };
-
-  const handleBlur = () => {
-    // Delay hiding suggestions to allow click event on suggestions to be fired
-    setTimeout(() => setShowSuggestions(false), 200);
-  };
-
   return (
-    <div className="App">
-      <div className="branding">
-        <h1 className="logo">Healthy Innovations</h1>
-        <p className="tagline">Helping individuals find healthy alternatives to junk food</p>
-      </div>
-      <div className="search-section">
-        <div className="search-bar">
-          <FaSearch className="search-icon" />
-          <input
-            type="text"
-            placeholder="Search for healthy alternatives..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            className="search-input"
-          />
-        </div>
-        {showSuggestions && (
-          <div className="dynamic-recommendations">
-            <ul>
-              <li>Avocado Toast</li>
-              <li>Kale Chips</li>
-              <li>Quinoa Salad</li>
-              {/* Additional dynamic suggestions */}
-            </ul>
-          </div>
-        )}
-        <ul className="static-suggestions">
-          {staticSuggestions.map((suggestion, index) => (
-            <li key={index}>{suggestion}</li>
-          ))}
-        </ul>
-      </div>
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/landing" element={<LandingPage />} />
+        <Route path="/" element={<LandingPage />} />
+      </Routes>
+    </Router>
   );
 }
 
 export default App;
+
+
