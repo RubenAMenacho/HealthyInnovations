@@ -11,3 +11,33 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  border: 2px solid #8FBC8F; /* Adjusted to match HealthyInnovation's theme */
+  border-radius: 4px;
+  padding: 5px;
+}
+
+.new-chat, .submit-chat {
+  background-color: #8FBC8F; /* Light green, similar to your theme */
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  margin-left: 10px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.new-chat:hover, .submit-chat:hover {
+  background-color: #006400; /* Darker green for hover effects */
+}
+
+.chat-history {
+  background-color: #f5f5dc; /* Cream background for chat history */
+  color: #006400; /* Dark green text */
+  margin: 10px 0;
+  padding: 10px;
+  border-radius: 4px;
+}
