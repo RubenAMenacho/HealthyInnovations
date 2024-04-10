@@ -16,10 +16,12 @@ function LandingPage() {
   const [showCalorieCalculator, setShowCalorieCalculator] = useState(false);
   const [workoutSplit, setWorkoutSplit] = useState('');
   const [showCalorieQuestion, setShowCalorieQuestion] = useState(false);
-
   const [chatInput, setChatInput] = useState('');
   const [chatHistory, setChatHistory] = useState([]);
   const [currentTitle, setCurrentTitle]= useState(null)
+  
+  console.log(chatHistory); // Debugging: Check the structure before rendering
+  
 
   const createNewChat = () => {
     // Clears the chat to start a new conversation
@@ -30,16 +32,17 @@ function LandingPage() {
 
   const renderChatHistory = () =>
   chatHistory.map((chat, index) => (
-    <div key={index} className="chat-history">
-      <p>{chat.content}</p>
-      <p>{chat.response}</p>
-    </div>
+      <div key={index} className="chat-history">
+          <p>Role: {chat.role}</p>
+          {/* Check if chat.content is a string; if not, handle it appropriately */}
+          <p>Message: {chat.content}</p>
+      </div>
   ));
 
   const handleSearchChange = (e) => {
-    const value = e.target.value;
-    setSearch(value); // This correctly updates the search input state
-    setShowSuggestions(value.length > 0); // Show suggestions if there's input
+    const inputValue = e.target.value;
+    setChatInput(inputValue); // Update chatInput instead of search state.
+    setShowSuggestions(inputValue.length > 0); // Show suggestions if there's input
   };
 
   const renderDynamicRecommendations = () => {
@@ -61,11 +64,13 @@ function LandingPage() {
 
   const SERVER_URL = "http://localhost:8000/completions";
   // Get messages function and other logic remain the same, ensure you're using chatInput for input value management
+  // Adjusting the getMessages function to handle server response correctly
   const getMessages = async () => {
+    if (!chatInput.trim()) return; // Avoid sending empty messages
     setIsLoading(true);
-    
+  
     try {
-      const response = await fetch(SERVER_URL, {
+      const response = await fetch('http://localhost:8000/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: chatInput })
@@ -75,19 +80,17 @@ function LandingPage() {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
   
-      const data = await response.json();
-  
-      // Assuming the response data structure is correct and contains a "data" field.
-      // Adjust based on your actual response structure
-      const aiResponse = data.data?.choices[0]?.message || "Sorry, I couldn't get a response.";
-  
-      setChatHistory(prev => [...prev, { input: chatInput, response: aiResponse }]);
-      setChatInput(''); // Clear the input field after sending the message
+      const { message } = await response.json();
+      const aiResponse = message || "No response from AI.";
+      // Update chat history
+      setChatHistory(prev => [...prev, { role: 'user', content: chatInput }, { role: 'ai', content: aiResponse }]);
+      setChatInput(''); // Clear the input field
     } catch (error) {
-      console.error('Request to AI failed:', error);
-      alert('Failed to get response from AI. Please check the console for more info.');
+      console.error('Fetch error:', error);
+      setChatHistory(prev => [...prev, { role: 'user', content: chatInput }, { role: 'ai', content: "Error communicating with AI." }]);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const workoutPlans = {
@@ -322,7 +325,7 @@ function LandingPage() {
               <input
   type="text"
   placeholder="Search for healthy alternatives..."
-  value={search} // Bind to `search`
+  value={chatInput} // Bind to `search`
   onChange={handleSearchChange} // Use `handleSearchChange`
   className="search-input"
 />
@@ -382,3 +385,4 @@ function LandingPage() {
 };
 
 export default LandingPage;
+
