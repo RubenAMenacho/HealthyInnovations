@@ -29,7 +29,7 @@
 .navigation-bar {
   width: 100%;
   background-color: #006400; /* Dark green background */
-  color: white;
+  color: rgb(11, 59, 18);
   display: flex;
   justify-content: space-around;
   padding: 10px 0;
@@ -43,7 +43,7 @@
 .navigation-bar button {
   background: none;
   border: none;
-  color: white;
+  color: rgb(12, 50, 20);
   padding: 10px 20px;
   cursor: pointer;
   font-size: 1rem;
@@ -395,3 +395,72 @@ label {
 .chat-history-item {
   list-style-position: inside;
 }
+
+.history {
+margin-top: -20px;
+}
+
+.branding h3 {
+margin-top: 45px;
+}
+
+.navigation-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 250px;
+  height: 100%;
+  background: #ffffff;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding-top: 20px;
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+}
+
+.navigation-bar.open {
+  transform: translateX(0);
+}
+
+.menu-icon {
+  position: absolute;
+  top: 10px;
+  left: 100%;  /* Position right on the edge of the closed nav bar */
+  cursor: pointer;
+  padding: 10px;
+  background: #006400; /* Match the nav bar background */
+  border: none;
+}
+
+.menu-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.user-info {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: bold;
+}
+
+.menu-items {
+  width: 100%;
+  text-align: center;
+}
+
+.menu-items button {
+  width: 100%;
+  padding: 20px;
+  border: none;
+  background: none;
+  font-size: 16px;
+  cursor: pointer;
+  border-bottom: 1px solid #155e0f;
+}
+

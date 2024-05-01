@@ -28,6 +28,7 @@ function LandingPage() {
   const [workoutSplit, setWorkoutSplit] = useState('');
   const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState('');
+  const [showActions, setShowActions] = useState(false); 
   
   console.log(chatHistory); // Debugging: Check the structure before rendering
   
@@ -35,6 +36,7 @@ function LandingPage() {
     // Resets all main content display states to false
     setShowSuggestions(false);
     setShowWorkoutQuestion(false);
+    setShowCalorieQuestion(false);
     setShowCalorieCalculator(false);
 
     // Enables the specific view the user navigated to
@@ -70,8 +72,8 @@ function LandingPage() {
 
   const handleSearchChange = (e) => {
     const inputValue = e.target.value;
-    setChatInput(inputValue); // Update chatInput instead of search state.
-    setShowSuggestions(inputValue.length > 0); // Show suggestions if there's input
+    setSearch(inputValue);
+    setChatInput(inputValue);
   };
 
   const renderDynamicRecommendations = () => {
@@ -101,9 +103,11 @@ function LandingPage() {
 
   const getMessages = async () => {
     if (!chatInput.trim()) return; 
+    setShowSuggestions(false); // Hide suggestions when submitting chat
     setIsLoading(true);
+    setIsLoading(false);  // Hide suggestions as soon as the button is clicked
     const SERVER_URL = "http://localhost:8000/completions";
-  
+    
     try {
       const response = await fetch(SERVER_URL, {
         method: 'POST',
@@ -124,6 +128,7 @@ function LandingPage() {
         chats: [...chatHistory, newMessage, botResponse]
       }]);
 
+      setShowSuggestions(false); 
       setChatInput(''); // Clear the input field
     } catch (error) {
       console.error('Fetch error:', error);
@@ -132,7 +137,6 @@ function LandingPage() {
       setIsLoading(false);
     }
   };
-
 
   useEffect(() => {
     if (!currentTitle && chatInput && chatHistory.length > 0) {
@@ -318,7 +322,6 @@ const cancelSaveWorkout = () => {
 
   const handleSelectSuggestion = (suggestion) => {
     setSearch(suggestion);
-    setShowSuggestions(false);
     setSelectedSuggestion(suggestion);
   };
 
@@ -388,6 +391,17 @@ const cancelSaveWorkout = () => {
     </button>
   ));
 
+      const handleSaveMacros = () => {
+        console.log("Macros saved!");
+        setShowSaveConfirmation(false);  // Reset the confirmation state after saving
+    };
+
+    const handleCancelSave = () => {
+        console.log("Not saving macros.");
+        setShowSaveConfirmation(false);  // Reset the confirmation state without saving
+    };
+
+
   if (showCalorieCalculator) {
     return (
       <div className="App">
@@ -404,119 +418,149 @@ const cancelSaveWorkout = () => {
 }
 
 
+if (showCalorieCalculator) {
+
+  
   return (
-    <div className="App">
-        <NavigationBar handleNavigationChange={handleNavigationChange} />
-        <div className="branding">
-            <h1 className="logo">Healthy Innovations</h1>
-            {!showWorkoutQuestion && <p className="tagline">Helping individuals find healthy alternatives to junk food</p>}
-            {previousChats.length > 0 && (
-                <>
-                    <h3>Chat History</h3>
-                    <ul className="history">
-                        {previousChats.map((chat, index) => (
-                            <li key={index} onClick={() => loadChatHistory(chat.title)} className="chat-history-item">{chat.title}</li>
-                        ))}
-                    </ul>
-                </>
-            )}
-            {renderSavedChats()}
-        </div>
-        <div className="search-section">
-            {showSuggestions && !showWorkoutQuestion && (
-                <>
-                    <div className="search-bar">
-                        <FaSearch className="search-icon" />
-                        <input
-                            type="text"
-                            placeholder="Search for healthy alternatives..."
-                            value={chatInput}
-                            onChange={(e) => setChatInput(e.target.value)}
-                            className="search-input"
-                        />
-                        <button onClick={getMessages} className="submit-chat">➢</button>
-                    </div>
-                    <button onClick={createNewChat} className="login-button">+ New Chat</button>
-                    {isLoading && <p>Loading...</p>}
-                    <div>
-                        {chatHistory.map((chat, index) => (
-                            <p key={index}><strong>{chat.role}:</strong> {chat.content}</p>
-                        ))}
-                    </div>
-                    <div className="dynamic-recommendations">
-                        {renderDynamicRecommendations()}
-                    </div>
-                </>
-            )}
-            {isLoading && <div className="loading-spinner"></div>}
-            {!showWorkoutQuestion && !workoutSplit && selectedSuggestion && recipeDetails && !isLoading && (
-                <div className="fade-in" style={{ border: '1px solid #ccc', padding: '20px', marginTop: '20px' }}>
-                    <h2>{selectedSuggestion}</h2>
-                    <h3>Ingredients</h3>
-                    <ul>
-                        {recipeDetails.ingredients.map((ingredient, index) => <li key={index}>{ingredient}</li>)}
-                    </ul>
-                    <h3>Instructions</h3>
-                    <ol>
-                        {recipeDetails.instructions.map((step, index) => <li key={index}>{step}</li>)}
-                    </ol>
-                    <h3>Nutritional Facts</h3>
-                    <p>Calories: {recipeDetails.nutritionalFacts.calories}</p>
-                    <p>Protein: {recipeDetails.nutritionalFacts.protein}</p>
-                    <p>Carbohydrates: {recipeDetails.nutritionalFacts.carbohydrates}</p>
-                    <p>Fat: {recipeDetails.nutritionalFacts.fat}</p>
-                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
-                        <button className="login-button" onClick={() => setShowSuggestions(true)} style={{ marginRight: '10px' }}>
-                            Want to search for another alternative?
-                        </button>
-                        <button className="login-button" onClick={handleWorkoutPlanClick}>
-                            Do you want a workout plan?
-                        </button>
-                    </div>
-                </div>
-            )}
-            {showWorkoutQuestion && (
-                <div className="fade-in" style={{ marginTop: '-80px' }}>
-                    <h2>How many days per week do you workout?</h2>
-                    <div>{workoutDayButtons}</div>
-                    {showSaveConfirmation && (
-                        <div>
-                            <h2>Do you want to save this workout?</h2>
-                            <button className="login-button" onClick={() => showToast("Workout saved!")} style={{ marginRight: '10px' }}>Yes</button>
-                            <button className="login-button" onClick={cancelSaveWorkout}>No</button>
-                        </div>
-                    )}
-                    {workoutSplit && (
-                        <>
-                            <pre style={{ whiteSpace: 'pre-wrap', textAlign: 'left' }}>{workoutSplit}</pre>
-                            {!showSaveConfirmation && (
-                                <div>
-                                    {isEditing ? (
-                                        <div>
-                                            <textarea value={editableWorkoutSplit} onChange={handleWorkoutPlanChange} />
-                                            <button onClick={handleSaveWorkoutPlan} className="login-button">Save</button>
-                                        </div>
-                                    ) : (
-                                        <pre style={{ whiteSpace: 'pre-wrap', textAlign: 'left' }}>{workoutSplit}</pre>
-                                    )}
-                                </div>
-                            )}
-                        </>
-                    )}
-                    {showCalorieQuestion && (
-                        <div className="fade-in" style={{ marginTop: '20px', animation: 'fadeIn 1s', margin: '10px' }}>
-                            <p style={{ fontWeight: 'bold' }}>Do you want to calculate your calories?</p>
-                            <button className="login-button" onClick={() => setShowCalorieCalculator(true)} style={{ marginRight: '10px' }}>Yes</button>
-                            <button className="login-button" onClick={() => handleCalorieQuestion('no')}>No</button>
-                        </div>
-                    )}
-                </div>
-            )}
-        </div>
-    </div>
+      <div className="App">
+          <NavigationBar handleNavigationChange={handleNavigationChange} />
+          <div className="branding">
+              <h1 className="logo">Healthy Innovations</h1>
+              <h2>Calculate your calories!</h2>
+          </div>
+          <div className="form-container fade-in">
+              <EntryForm />
+              <div>
+                  {/* This button simulates the action of calculating calories */}
+                  <button className="login-button" onClick={() => setShowSaveConfirmation(true)}>
+                      Calculate my calories
+                  </button>
+                  {/* Conditional rendering for saving confirmation */}
+                  {showSaveConfirmation && (
+                      <div className="save-confirmation">
+                          <p>Do you want to save these macros?</p>
+                          <button className="login-button" onClick={() => {
+                              console.log("Macros saved!");
+                              setShowSaveConfirmation(false); // Reset the state or navigate away
+                          }}>Yes</button>
+                          <button className="login-button" onClick={() => setShowSaveConfirmation(false)}>No</button>
+                      </div>
+                  )}
+              </div>
+          </div>
+      </div>
+  );
+}
+
+return (
+  <div className="App">
+      <NavigationBar handleNavigationChange={handleNavigationChange} />
+      <div className="branding">
+          <h1 className="logo">Healthy Innovations</h1>
+          {!showWorkoutQuestion && <p className="tagline">Helping individuals find healthy alternatives to junk food</p>}
+          {previousChats.length > 0 && (
+              <>
+                  <h3>Chat History</h3>
+                  <ul className="history">
+                      {previousChats.map((chat, index) => (
+                          <li key={index} onClick={() => loadChatHistory(chat.title)} className="chat-history-item">{chat.title}</li>
+                      ))}
+                  </ul>
+              </>
+          )}
+          {renderSavedChats()}
+      </div>
+      <div className="search-section">
+          {!showWorkoutQuestion && (
+              <>
+                  <div className="search-bar">
+                      <FaSearch className="search-icon" />
+                      <input
+                          type="text"
+                          placeholder="Search for healthy alternatives..."
+                          value={chatInput}
+                          onChange={handleSearchChange}
+                          className="search-input"
+                      />
+                      <button onClick={getMessages} className="submit-chat">➢</button>
+                  </div>
+                  <button onClick={createNewChat} className="login-button">+ New Chat</button>
+                  {isLoading && <p>Loading...</p>}
+                  <div>
+                      {chatHistory.map((chat, index) => (
+                          <p key={index}><strong>{chat.role}:</strong> {chat.content}</p>
+                      ))}
+                  </div>
+                  {showSuggestions && <div className="dynamic-recommendations">{renderDynamicRecommendations()}</div>}
+              </>
+          )}
+          {isLoading && <div className="loading-spinner"></div>}
+          {!showWorkoutQuestion && !workoutSplit && selectedSuggestion && recipeDetails && !isLoading && (
+              <div className="fade-in" style={{ border: '1px solid #ccc', padding: '20px', marginTop: '20px' }}>
+                  <h2>{selectedSuggestion}</h2>
+                  <h3>Ingredients</h3>
+                  <ul>
+                      {recipeDetails.ingredients.map((ingredient, index) => <li key={index}>{ingredient}</li>)}
+                  </ul>
+                  <h3>Instructions</h3>
+                  <ol>
+                      {recipeDetails.instructions.map((step, index) => <li key={index}>{step}</li>)}
+                  </ol>
+                  <h3>Nutritional Facts</h3>
+                  <p>Calories: {recipeDetails.nutritionalFacts.calories}</p>
+                  <p>Protein: {recipeDetails.nutritionalFacts.protein}</p>
+                  <p>Carbohydrates: {recipeDetails.nutritionalFacts.carbohydrates}</p>
+                  <p>Fat: {recipeDetails.nutritionalFacts.fat}</p>
+                  <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
+                      <button className="login-button" onClick={() => setShowSuggestions(true)} style={{ marginRight: '10px' }}>
+                          Want to search for another alternative?
+                      </button>
+                      <button className="login-button" onClick={handleWorkoutPlanClick}>
+                          Do you want a workout plan?
+                      </button>
+                  </div>
+              </div>
+          )}
+          {showWorkoutQuestion && (
+              <div className="fade-in" style={{ marginTop: '20px' }}>
+                  <h2>How many days per week do you workout?</h2>
+                  <div>{workoutDayButtons}</div>
+                  {showSaveConfirmation && (
+                      <div>
+                          <h2>Do you want to save this workout?</h2>
+                          <button className="login-button" onClick={() => showToast("Workout saved!")} style={{ marginRight: '10px' }}>Yes</button>
+                          <button className="login-button" onClick={cancelSaveWorkout}>No</button>
+                      </div>
+                  )}
+                  {workoutSplit && (
+                      <>
+                          <pre style={{ whiteSpace: 'pre-wrap', textAlign: 'left' }}>{workoutSplit}</pre>
+                          {!showSaveConfirmation && (
+                              <div>
+                                  {isEditing ? (
+                                      <div>
+                                          <textarea value={editableWorkoutSplit} onChange={handleWorkoutPlanChange} />
+                                          <button onClick={handleSaveWorkoutPlan} className="login-button">Save</button>
+                                      </div>
+                                  ) : (
+                                      <pre style={{ whiteSpace: 'pre-wrap', textAlign: 'left' }}>{workoutSplit}</pre>
+                                  )}
+                              </div>
+                          )}
+                      </>
+                  )}
+                  {showCalorieQuestion && (
+                      <div className="fade-in" style={{ marginTop: '20px', animation: 'fadeIn 1s', margin: '10px' }}>
+                          <p style={{ fontWeight: 'bold' }}>Do you want to calculate your calories?</p>
+                          <button className="login-button" onClick={() => setShowCalorieCalculator(true)} style={{ marginRight: '10px' }}>Yes</button>
+                          <button className="login-button" onClick={() => handleCalorieQuestion('no')}>No</button>
+                      </div>
+                  )}
+              </div>
+          )}
+      </div>
+  </div>
 );
-  
-  
   
   function showToast(message) {
     // Implement toast mechanism, or use a library like react-toastify
