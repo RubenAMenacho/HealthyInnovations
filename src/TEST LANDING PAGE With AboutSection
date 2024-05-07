@@ -35,4 +35,7 @@
 </div>
 <button onClick={() => setShowAbout(!showAbout)}>About</button>
 {showAbout && <AboutSection />}
-</div>
+</div> 
+
+//NAVBAR CODE 
+   <button onClick={() => {handleNavigationChange('About'); setIsOpen(false);}}>About</button>
