@@ -27,3 +27,12 @@
             // Optionally set a default view
             break;
     }
+
+
+<div className="App">
+<NavigationBar handleNavigationChange={handleNavigationChange} />
+<div className="branding">
+</div>
+<button onClick={() => setShowAbout(!showAbout)}>About</button>
+{showAbout && <AboutSection />}
+</div>
