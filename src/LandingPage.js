@@ -3,7 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { FaSearch } from 'react-icons/fa';
 import './App.css';
 import { EntryForm } from './EntryForm';
+import SavedWorkouts from './SavedWorkouts';
 import NavigationBar from './NavigationBar';
+import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
 function LandingPage() {
   // States related to the Healthy Innovations features
@@ -18,45 +21,70 @@ function LandingPage() {
   const [showWorkoutPlan, setShowWorkoutPlan] = useState(false);
   const [showCalorieCalculator, setShowCalorieCalculator] = useState(false);
   const [showCalorieQuestion, setShowCalorieQuestion] = useState(false);
+  const [showSavedWorkouts, setShowSavedWorkouts] = useState(false); // Ensure this is defined if used
   const [chatInput, setChatInput] = useState('');
   const [chatHistory, setChatHistory] = useState([]);
-  const [currentTitle, setCurrentTitle]= useState(null)
+  const [currentTitle, setCurrentTitle] = useState(null);
   const [selectedChatIndex, setSelectedChatIndex] = useState(null);
-  const [previousChats, setPreviousChats] = useState([]); 
+  const [previousChats, setPreviousChats] = useState([]);
   const [editableWorkoutSplit, setEditableWorkoutSplit] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [workoutSplit, setWorkoutSplit] = useState('');
   const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState('');
-  const [showActions, setShowActions] = useState(false); 
+  const [showActions, setShowActions] = useState(false);
+  const [showSavedWorkoutButton, setShowSavedWorkoutButton] = useState(false);
   
-  console.log(chatHistory); // Debugging: Check the structure before rendering
   
-  function handleNavigationChange(view) {
-    // Resets all main content display states to false
-    setShowSuggestions(false);
-    setShowWorkoutQuestion(false);
-    setShowCalorieQuestion(false);
-    setShowCalorieCalculator(false);
+  console.log(chatHistory); 
+  
+  const db = getFirestore();
+const auth = getAuth();
+const user = auth.currentUser; 
 
-    // Enables the specific view the user navigated to
-    switch(view) {
-        case 'home':
-            setShowSuggestions(true);
-            break;
-        case 'workout':
-            setShowWorkoutQuestion(true);
-            break;
-        case 'calories':
-            setShowCalorieCalculator(true);
-            break;
-        default:
-            // Optionally set a default view
-            break;
-    }
-}
+useEffect(() => {
+  if (user) {
+      const userDocRef = doc(db, "users", user.uid);
+      console.log("Attempting to save to: ", userDocRef.path);
+      // Fetch or handle data involving userDocRef here
+  }
+}, [user, db]);
+
 
   
+const handleNavigationChange = (view) => {
+  console.log(`Navigating to ${view}`);
+  resetViews();
+  setShowSuggestions(false);
+  setShowWorkoutQuestion(false);
+  setShowCalorieQuestion(false);
+  setShowCalorieCalculator(false);
+  switch(view) {
+    case 'home':
+      setShowSuggestions(true);
+      break;
+    case 'workout':
+      setShowWorkoutQuestion(true);
+      break;
+    case 'calories':
+      setShowCalorieCalculator(true);
+      break;
+      case 'savedWorkout':
+        setShowSavedWorkouts(true);  // Set the state to show saved workouts
+        break;
+      default:
+      break;
+  }
+};
+  
+const resetViews = () => {
+  setShowSuggestions(false);
+  setShowWorkoutQuestion(false);
+  setShowCalorieQuestion(false);
+  setShowCalorieCalculator(false);
+  setShowSavedWorkouts(false);
+};
+
   const createNewChat = () => {
     setChatInput('');
     setCurrentTitle(null);
@@ -154,6 +182,66 @@ function LandingPage() {
       ))}
     </div>
   );
+
+  const saveWorkoutPlan = async (userId, workoutPlanDetails) => {
+    if (!userId) return;
+    const userDocRef = doc(db, "users", userId);
+    try {
+        // Ensure you're saving detailed information about the workout plan
+        await setDoc(userDocRef, { workoutPlan: workoutPlanDetails }, { merge: true });
+        console.log("Workout plan saved successfully!");
+    } catch (error) {
+        console.error("Error saving workout plan:", error);
+    }
+};
+
+  const getWorkoutPlan = async (userId) => {
+    if (!userId) return;
+    const userDocRef = doc(db, "users", userId);
+    try {
+      const docSnap = await getDoc(userDocRef);
+      if (docSnap.exists()) {
+        console.log("Workout Plan:", docSnap.data().workoutPlan);
+        return docSnap.data().workoutPlan;
+      } else {
+        console.log("No such workout plan!");
+        return null;
+      }
+    } catch (error) {
+      console.error("Error retrieving workout plan: ", error);
+    }
+  };
+
+// When confirming to save the workout
+const confirmSaveWorkout = async () => {
+  if (user && selectedPlan) {
+    await saveWorkoutPlan(user.uid, selectedPlan);
+    setShowSavedWorkoutButton(true);  // Display the Saved Workouts button
+    setShowWorkoutPlan(false);
+    setShowCalorieQuestion(true);
+    setShowSaveConfirmation(false);
+    showToast("Workout Saved!");
+  } else {
+    console.log("No plan selected or no user logged in");
+  }
+};
+
+useEffect(() => {
+  const userId = 'user123'; // Replace with actual user ID from authentication
+  getWorkoutPlan(userId).then(plan => {
+    if (plan) {
+      setWorkoutSplit(plan);
+    }
+  });
+}, []);
+
+const handleSelectWorkoutPlan = async (plan) => {
+  const userId = 'user123'; // Ideally, this would come from your auth context or similar
+  await saveWorkoutPlan(userId, workoutPlans[plan]);
+  setWorkoutSplit(workoutPlans[plan]); // Update local state
+};
+
+
   const workoutPlans = {
     "3 days": `3-Day Split
 
@@ -293,22 +381,19 @@ function LandingPage() {
 
 
   const selectWorkoutPlan = (plan) => {
-    if (!isEditing) { // Only change the plan if not currently editing
-      setWorkoutSplit(workoutPlans[plan]);
-      setShowWorkoutPlan(false);
-      setShowCalorieQuestion(true);
-      setSelectedPlan(plan);  // Set the plan that was selected
-      setShowSaveConfirmation(true); 
+    if (!isEditing) {
+        const planDetails = {
+            planName: plan,
+            details: workoutPlans[plan] // Make sure this contains all the necessary details
+        };
+
+        setWorkoutSplit(workoutPlans[plan]);
+        setShowWorkoutPlan(false);
+        setShowCalorieQuestion(true);
+        setSelectedPlan(planDetails); // Save detailed plan information
+        setShowSaveConfirmation(true);
     }
-  };
-
-  const confirmSaveWorkout = () => {
-    setWorkoutSplit(workoutPlans[selectedPlan]);
-    setShowWorkoutPlan(false);
-    setShowCalorieQuestion(true);
-    setShowSaveConfirmation(false);  // Hide the confirmation after saving
 };
-
 const cancelSaveWorkout = () => {
     setShowSaveConfirmation(false); 
     setWorkoutSplit(''); // Simply hide the confirmation without saving
@@ -401,6 +486,8 @@ const cancelSaveWorkout = () => {
         setShowSaveConfirmation(false);  // Reset the confirmation state without saving
     };
 
+    
+
 
   if (showCalorieCalculator) {
     return (
@@ -454,113 +541,120 @@ if (showCalorieCalculator) {
 
 return (
   <div className="App">
-      <NavigationBar handleNavigationChange={handleNavigationChange} />
-      <div className="branding">
+    <NavigationBar handleNavigationChange={handleNavigationChange} showSavedWorkoutButton={showSavedWorkoutButton} />
+    {showSavedWorkouts ? (
+      <SavedWorkouts />  // Use the SavedWorkouts component directly
+    ) : (
+      <div>
+        <div className="branding">
           <h1 className="logo">Healthy Innovations</h1>
           {!showWorkoutQuestion && <p className="tagline">Helping individuals find healthy alternatives to junk food</p>}
           {previousChats.length > 0 && (
-              <>
-                  <h3>Chat History</h3>
-                  <ul className="history">
-                      {previousChats.map((chat, index) => (
-                          <li key={index} onClick={() => loadChatHistory(chat.title)} className="chat-history-item">{chat.title}</li>
-                      ))}
-                  </ul>
-              </>
+            <>
+              <h3>Chat History</h3>
+              <ul className="history">
+                {previousChats.map((chat, index) => (
+                  <li key={index} onClick={() => loadChatHistory(chat.title)} className="chat-history-item">{chat.title}</li>
+                ))}
+              </ul>
+            </>
           )}
           {renderSavedChats()}
-      </div>
-      <div className="search-section">
+        </div>
+        <div className="search-section">
           {!showWorkoutQuestion && (
-              <>
-                  <div className="search-bar">
-                      <FaSearch className="search-icon" />
-                      <input
-                          type="text"
-                          placeholder="Search for healthy alternatives..."
-                          value={chatInput}
-                          onChange={handleSearchChange}
-                          className="search-input"
-                      />
-                      <button onClick={getMessages} className="submit-chat">➢</button>
-                  </div>
-                  <button onClick={createNewChat} className="login-button">+ New Chat</button>
-                  {isLoading && <p>Loading...</p>}
-                  <div>
-                      {chatHistory.map((chat, index) => (
-                          <p key={index}><strong>{chat.role}:</strong> {chat.content}</p>
-                      ))}
-                  </div>
-                  {showSuggestions && <div className="dynamic-recommendations">{renderDynamicRecommendations()}</div>}
-              </>
+            <>
+              <div className="search-bar">
+                <FaSearch className="search-icon" />
+                <input
+                  type="text"
+                  placeholder="Search for healthy alternatives..."
+                  value={chatInput}
+                  onChange={handleSearchChange}
+                  className="search-input"
+                />
+                <button onClick={getMessages} className="submit-chat">➢</button>
+              </div>
+              <button onClick={createNewChat} className="login-button">+ New Chat</button>
+              {isLoading && <p>Loading...</p>}
+              <div>
+                {chatHistory.map((chat, index) => (
+                  <p key={index}><strong>{chat.role}:</strong> {chat.content}</p>
+                ))}
+              </div>
+              {showSuggestions && <div className="dynamic-recommendations">{renderDynamicRecommendations()}</div>}
+            </>
           )}
           {isLoading && <div className="loading-spinner"></div>}
           {!showWorkoutQuestion && !workoutSplit && selectedSuggestion && recipeDetails && !isLoading && (
-              <div className="fade-in" style={{ border: '1px solid #ccc', padding: '20px', marginTop: '20px' }}>
-                  <h2>{selectedSuggestion}</h2>
-                  <h3>Ingredients</h3>
-                  <ul>
-                      {recipeDetails.ingredients.map((ingredient, index) => <li key={index}>{ingredient}</li>)}
-                  </ul>
-                  <h3>Instructions</h3>
-                  <ol>
-                      {recipeDetails.instructions.map((step, index) => <li key={index}>{step}</li>)}
-                  </ol>
-                  <h3>Nutritional Facts</h3>
-                  <p>Calories: {recipeDetails.nutritionalFacts.calories}</p>
-                  <p>Protein: {recipeDetails.nutritionalFacts.protein}</p>
-                  <p>Carbohydrates: {recipeDetails.nutritionalFacts.carbohydrates}</p>
-                  <p>Fat: {recipeDetails.nutritionalFacts.fat}</p>
-                  <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
-                      <button className="login-button" onClick={() => setShowSuggestions(true)} style={{ marginRight: '10px' }}>
-                          Want to search for another alternative?
-                      </button>
-                      <button className="login-button" onClick={handleWorkoutPlanClick}>
-                          Do you want a workout plan?
-                      </button>
-                  </div>
+            <div className="fade-in" style={{ border: '1px solid #ccc', padding: '20px', marginTop: '20px' }}>
+              <h2>{selectedSuggestion}</h2>
+              <h3>Ingredients</h3>
+              <ul>
+                {recipeDetails.ingredients.map((ingredient, index) => <li key={index}>{ingredient}</li>)}
+              </ul>
+              <h3>Instructions</h3>
+              <ol>
+                {recipeDetails.instructions.map((step, index) => <li key={index}>{step}</li>)}
+              </ol>
+              <h3>Nutritional Facts</h3>
+              <p>Calories: {recipeDetails.nutritionalFacts.calories}</p>
+              <p>Protein: {recipeDetails.nutritionalFacts.protein}</p>
+              <p>Carbohydrates: {recipeDetails.nutritionalFacts.carbohydrates}</p>
+              <p>Fat: {recipeDetails.nutritionalFacts.fat}</p>
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
+                <button className="login-button" onClick={() => setShowSuggestions(true)} style={{ marginRight: '10px' }}>
+                  Want to search for another alternative?
+                </button>
+                <button className="login-button" onClick={handleWorkoutPlanClick}>
+                  Do you want a workout plan?
+                </button>
               </div>
+            </div>
           )}
           {showWorkoutQuestion && (
-              <div className="fade-in" style={{ marginTop: '20px' }}>
-                  <h2>How many days per week do you workout?</h2>
-                  <div>{workoutDayButtons}</div>
-                  {showSaveConfirmation && (
-                      <div>
-                          <h2>Do you want to save this workout?</h2>
-                          <button className="login-button" onClick={() => showToast("Workout saved!")} style={{ marginRight: '10px' }}>Yes</button>
-                          <button className="login-button" onClick={cancelSaveWorkout}>No</button>
-                      </div>
+            <div className="fade-in" style={{ marginTop: '20px' }}>
+              <h2>How many days per week do you workout?</h2>
+              <div>{workoutDayButtons}</div>
+              {showSaveConfirmation && (
+                <div>
+                  <h2>Do you want to save this workout?</h2>
+                  <button className="login-button" onClick={() => confirmSaveWorkout()} style={{ marginRight: '10px' }}>Yes</button>
+                  <button className="login-button" onClick={cancelSaveWorkout}>No</button>
+                </div>
+              )}
+              {workoutSplit && (
+                <>
+                  <pre style={{ whiteSpace: 'pre-wrap', textAlign: 'left' }}>{workoutSplit}</pre>
+                  {!showSaveConfirmation && (
+                    <div>
+                      {isEditing ? (
+                        <div>
+                          <textarea value={editableWorkoutSplit} onChange={handleWorkoutPlanChange} />
+                          <button onClick={handleSaveWorkoutPlan} className="login-button">Save</button>
+                        </div>
+                      ) : (
+                        <pre style={{ whiteSpace: 'pre-wrap', textAlign: 'left' }}>{workoutSplit}</pre>
+                      )}
+                    </div>
                   )}
-                  {workoutSplit && (
-                      <>
-                          <pre style={{ whiteSpace: 'pre-wrap', textAlign: 'left' }}>{workoutSplit}</pre>
-                          {!showSaveConfirmation && (
-                              <div>
-                                  {isEditing ? (
-                                      <div>
-                                          <textarea value={editableWorkoutSplit} onChange={handleWorkoutPlanChange} />
-                                          <button onClick={handleSaveWorkoutPlan} className="login-button">Save</button>
-                                      </div>
-                                  ) : (
-                                      <pre style={{ whiteSpace: 'pre-wrap', textAlign: 'left' }}>{workoutSplit}</pre>
-                                  )}
-                              </div>
-                          )}
-                      </>
-                  )}
-                  {showCalorieQuestion && (
-                      <div className="fade-in" style={{ marginTop: '20px', animation: 'fadeIn 1s', margin: '10px' }}>
-                          <p style={{ fontWeight: 'bold' }}>Do you want to calculate your calories?</p>
-                          <button className="login-button" onClick={() => setShowCalorieCalculator(true)} style={{ marginRight: '10px' }}>Yes</button>
-                          <button className="login-button" onClick={() => handleCalorieQuestion('no')}>No</button>
-                      </div>
-                  )}
-              </div>
+                </>
+              )}
+              {showCalorieQuestion && (
+                <div className="fade-in" style={{ marginTop: '20px', animation: 'fadeIn 1s', margin: '10px' }}>
+                  <p style={{ fontWeight: 'bold' }}>Do you want to calculate your calories?</p>
+                  <button className="login-button" onClick={() => setShowCalorieCalculator(true)} style={{ marginRight: '10px' }}>Yes</button>
+                  <button className="login-button" onClick={() => handleCalorieQuestion('no')}>No</button>
+                </div>
+              )}
+            </div>
           )}
+        </div>
       </div>
+    )}
   </div>
 );
+
   
   function showToast(message) {
     // Implement toast mechanism, or use a library like react-toastify
@@ -570,4 +664,3 @@ return (
   }
   
   export default LandingPage;
-
