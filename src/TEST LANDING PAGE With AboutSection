@@ -1,0 +1,29 @@
+  const [showAbout, setShowAbout] = useState(false);
+
+  console.log(chatHistory); // Debugging: Check the structure before rendering
+  
+  function handleNavigationChange(view) {
+    // Resets all main content display states to false
+    setShowSuggestions(false);
+    setShowWorkoutQuestion(false);
+    setShowCalorieQuestion(false);
+    setShowCalorieCalculator(false);
+    setShowAbout(false);
+
+    // Enables the specific view the user navigated to
+    switch(view) {
+        case 'home':
+            setShowSuggestions(true);
+            break;
+        case 'workout':
+            setShowWorkoutQuestion(true);
+            break;
+        case 'calories':
+            setShowCalorieCalculator(true);
+            break;
+        case 'About': 
+            setShowAbout(true);
+        default:
+            // Optionally set a default view
+            break;
+    }
